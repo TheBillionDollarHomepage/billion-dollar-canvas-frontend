@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { useQuery } from "urql";
+import { useBlockNumber } from "wagmi";
 
 const Query = `
   query Query($first: Int!) {
@@ -6,12 +8,13 @@ const Query = `
       id
       price
       owner
+      tokenUri
     }
   }
 `;
 
 export const usePixels = () => {
-  const [{ data, fetching: loading, error }] = useQuery({
+  const [{ data, fetching: loading, error }, reexecuteQuery] = useQuery({
     query: Query,
     variables: { first: 300 },
   });
