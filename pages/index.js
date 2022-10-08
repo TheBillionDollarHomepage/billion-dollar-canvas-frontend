@@ -171,7 +171,7 @@ export default function Home() {
       <PixelsContext.Provider value={[pixels, loading, error]}>
         <Container>
           {new Array(70).fill(0).map((v, i) => (
-            <Pixel id={i} />
+            <Pixel id={i} key={i} />
           ))}
         </Container>
       </PixelsContext.Provider>
