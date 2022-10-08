@@ -7,6 +7,7 @@ import { useAccount, useBlockNumber, useSigner } from "wagmi";
 import { Input } from "../components/core/Input";
 import { Modal } from "../components/layout/Modal";
 import billionDollarCanvasAbi from "../contracts/BillionDollarCanvas.abi.json";
+import { usePixels } from "../hooks/usePixels";
 
 const Container = styled.div`
   display: flex;
@@ -139,6 +140,9 @@ const Pixel = ({ id }) => {
 
 export default function Home() {
   const { data: blockNumber } = useBlockNumber();
+  const [pixels, loading, error] = usePixels();
+
+  console.log("pixels", pixels);
 
   useEffect(() => {}, [blockNumber]);
 
