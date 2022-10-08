@@ -5,7 +5,6 @@ export const ConnectWalletButton = ({ children }) => {
   const { address, isConnected } = useAccount();
   const { data: ensName } = useEnsName({ address });
 
-  console.log("ENS NAME", ensName);
   const {
     connect,
     connectors: [connector],

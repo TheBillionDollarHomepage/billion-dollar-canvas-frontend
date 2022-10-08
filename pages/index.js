@@ -30,6 +30,7 @@ const PixelContainer = styled.div`
   height: 96px;
   width: 96px;
   cursor: pointer;
+  overflow: hidden;
 
   &:hover {
     background-color: grey;
