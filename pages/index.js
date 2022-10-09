@@ -41,17 +41,15 @@ const PixelContainer = styled.div`
   }
 
   img {
-    height: 96px;
+    object-fit: cover;
+    max-height: 100%;
+    min-width: 96px;
   }
 `;
 
-const PIXEL_COLORS = [
-  // "#F3B1CD",
-  "#F8D7E8",
-  "#BAD5F0",
-  "#D6EFF6",
-  "#F8EFE6",
-].map((v) => shadeColor(v, 15));
+const PIXEL_COLORS = ["#F8D7E8", "#BAD5F0", "#D6EFF6", "#F8EFE6"].map((v) =>
+  shadeColor(v, 15)
+);
 
 console.log("colors", PIXEL_COLORS);
 
