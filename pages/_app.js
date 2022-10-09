@@ -2,7 +2,7 @@ import { BodyLayout } from "../components/layout/BodyLayout";
 import { Header } from "../components/layout/Header";
 import { EthereumProvider } from "../context/EthereumContext";
 import { TheGraphProvider } from "../context/TheGraphContext";
-import { LivepeerProvider } from "../context/LivePeerContext";
+import { LivepeerProvider } from "../context/LivepeerContextt";
 import "../styles/globals.css";
 
 function App({ Component, pageProps }) {
