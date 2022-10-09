@@ -1,7 +1,7 @@
 import { Contract } from "ethers";
 import { formatEther, parseEther } from "ethers/lib/utils";
 import Head from "next/head";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { useAccount, useBlockNumber, useProvider, useSigner } from "wagmi";
 import { Web3Storage } from "web3.storage";
@@ -9,6 +9,7 @@ import { Input } from "../components/core/Input";
 import { Modal } from "../components/layout/Modal";
 import billionDollarCanvasAbi from "../contracts/BillionDollarCanvas.abi.json";
 import { usePixels } from "../hooks/usePixels";
+import { shadeColor } from "../utils/shadeColor";
 
 const PixelsContext = createContext([]);
 
@@ -29,14 +30,14 @@ const Container = styled.div`
 `;
 
 const PixelContainer = styled.div`
-  border: 1px solid black;
+  border: 1px solid grey;
   height: 96px;
   width: 96px;
   cursor: pointer;
   overflow: hidden;
 
   &:hover {
-    background-color: grey;
+    border: 1px solid red;
   }
 
   img {
@@ -44,10 +45,15 @@ const PixelContainer = styled.div`
   }
 `;
 
-const PixelState = {
-  NOT_MINTED: "Not minted",
-  MINTED: "Minted",
-};
+const PIXEL_COLORS = [
+  // "#F3B1CD",
+  "#F8D7E8",
+  "#BAD5F0",
+  "#D6EFF6",
+  "#F8EFE6",
+].map((v) => shadeColor(v, 15));
+
+console.log("colors", PIXEL_COLORS);
 
 const Pixel = ({ id }) => {
   const { address } = useAccount();
@@ -141,9 +147,18 @@ const Pixel = ({ id }) => {
     fetchImageUri();
   }, [loading, pixel.tokenUri]);
 
+  const pixelColor = useMemo(() => {
+    return PIXEL_COLORS[Math.floor(Math.random() * PIXEL_COLORS.length)];
+  }, []);
+
   return (
     <>
-      <PixelContainer onClick={() => setShow(true)}>
+      <PixelContainer
+        onClick={() => setShow(true)}
+        style={{
+          backgroundColor: pixelColor,
+        }}
+      >
         {imageUri && <img src={imageUri} />}
       </PixelContainer>
 
@@ -154,6 +169,7 @@ const Pixel = ({ id }) => {
 
             {pixel.owner && <p>Owner: {pixel.owner}</p>}
             <p>Harberger tax price: {formatEther(pixelPrice || "0")} ETH</p>
+            {pixel.tokenUri && <a href={pixel.tokenUri}>IPFS link</a>}
 
             {address && address.toLowerCase() === pixel.owner && (
               <>

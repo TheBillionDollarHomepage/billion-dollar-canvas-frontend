@@ -1,3 +1,4 @@
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount, useConnect, useEnsName, useNetwork } from "wagmi";
 import { ErrorText } from "./ErrorText";
 
@@ -15,5 +16,5 @@ export const ConnectWalletButton = ({ children }) => {
     return <ErrorText>Connect to goerli</ErrorText>;
   if (isConnected) return children ? children : <div>{ensName ?? address}</div>;
 
-  return <button onClick={() => connect({ connector })}>Connect Wallet</button>;
+  return <ConnectButton />;
 };

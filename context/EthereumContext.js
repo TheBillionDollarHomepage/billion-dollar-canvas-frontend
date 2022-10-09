@@ -1,22 +1,41 @@
 import { allChains, configureChains, createClient, WagmiConfig } from "wagmi";
-import { alchemyProvider } from "wagmi/providers/alchemy";
-import { publicProvider } from "wagmi/providers/public";
+import { jsonRpcProvider } from "wagmi/providers/jsonRpc";
 import { InjectedConnector } from "wagmi/connectors/injected";
+import {
+  getDefaultWallets,
+  midnightTheme,
+  RainbowKitProvider,
+} from "@rainbow-me/rainbowkit";
+import "@rainbow-me/rainbowkit/styles.css";
 
 const { chains, provider } = configureChains(
   [allChains.find(({ id }) => id == process.env.NEXT_PUBLIC_CHAIN_ID)],
   [
-    alchemyProvider({ apiKey: process.env.NEXT_PUBLIC_ALCHEMY_ID }),
-    publicProvider(),
+    jsonRpcProvider({
+      rpc: (chain) => ({
+        http: process.env.NEXT_PUBLIC_RPC_URL,
+      }),
+    }),
   ]
 );
 
+const { connectors } = getDefaultWallets({
+  appName: "My RainbowKit App",
+  chains,
+});
+
 const wagmiClient = createClient({
   autoConnect: true,
-  connectors: [new InjectedConnector({ chains })],
+  connectors,
   provider,
 });
 
 export const EthereumProvider = ({ children }) => {
-  return <WagmiConfig client={wagmiClient}>{children}</WagmiConfig>;
+  return (
+    <WagmiConfig client={wagmiClient}>
+      <RainbowKitProvider theme={midnightTheme()} chains={chains}>
+        {children}
+      </RainbowKitProvider>
+    </WagmiConfig>
+  );
 };
