@@ -79,8 +79,6 @@ const Pixel = ({ id }) => {
   const [description, setDescription] = useState();
   const [name, setName] = useState();
 
-  console.log("metadat", metadata);
-
   const pixel = pixels?.find((v) => v.id == id) || {};
 
   const canvas = new Contract(
@@ -105,7 +103,8 @@ const Pixel = ({ id }) => {
 
     const newMetadata = {
       image,
-      description: description || pixel.description,
+      description:
+        description || pixel.description || "harberger taxed pixel :lmeow:",
       name: name || pixel.name || "Pixel " + id,
     };
 
@@ -125,12 +124,15 @@ const Pixel = ({ id }) => {
   };
 
   const buyPixel = async () => {
-    const finalisedTokenUri = file && uploadToIpfs();
+    console.log("buying");
+    const finalisedTokenUri = uploadToIpfs();
+
+    console.log("finalised", finalisedTokenUri);
 
     const tx = await canvas.buy(
       id,
       finalisedTokenUri || pixel.tokenUri,
-      parseEther(price || pixelPrice),
+      price ? parseEther(price) : pixelPrice,
       {
         value: pixelPrice,
       }
