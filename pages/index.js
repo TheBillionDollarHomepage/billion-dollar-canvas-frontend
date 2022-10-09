@@ -6,6 +6,7 @@ import styled from "styled-components";
 import { useAccount, useBlockNumber, useProvider, useSigner } from "wagmi";
 import { Web3Storage } from "web3.storage";
 import { Input } from "../components/core/Input";
+import { TextArea } from "../components/core/TextArea";
 import { Modal } from "../components/layout/Modal";
 import billionDollarCanvasAbi from "../contracts/BillionDollarCanvas.abi.json";
 import { usePixels } from "../hooks/usePixels";
@@ -27,6 +28,16 @@ const Container = styled.div`
   }
 
   margin-bottom: 48px;
+
+  .show-more {
+    cursor: pointer;
+    color: green;
+    font-weight: bold;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
 `;
 
 const PixelContainer = styled.div`
@@ -56,14 +67,19 @@ console.log("colors", PIXEL_COLORS);
 const Pixel = ({ id }) => {
   const { address } = useAccount();
   const [show, setShow] = useState();
-  const [tokenUri, setTokenUri] = useState();
+  const [file, setFile] = useState();
   const [price, setPrice] = useState();
   const { data: signer } = useSigner();
   const provider = useProvider();
   const [pixels, loading, error] = useContext(PixelsContext);
   const [pixelPrice, setPixelPrice] = useState();
-  const [imageUri, setImageUri] = useState();
+  const [metadata, setMetadata] = useState({});
   const [uploadingToIpfs, setUploadingToIpfs] = useState(false);
+  const [showMore, setShowMore] = useState();
+  const [description, setDescription] = useState();
+  const [name, setName] = useState();
+
+  console.log("metadat", metadata);
 
   const pixel = pixels?.find((v) => v.id == id) || {};
 
@@ -73,37 +89,60 @@ const Pixel = ({ id }) => {
     signer || provider
   );
 
-  const buyPixel = async () => {
-    // submit transaction to buy pixel
-    const tx = await canvas.buy(id, pixel.tokenUri || "", pixelPrice, {
-      value: pixelPrice,
-    });
-    await tx.wait();
-
-    alert("Bought pixel");
-  };
-
-  const updateDataUri = async () => {
+  const uploadToIpfs = async () => {
     setUploadingToIpfs(true);
 
     const storage = new Web3Storage({
       token: process.env.NEXT_PUBLIC_WEB3STORAGE_TOKEN,
     });
 
-    const metadata = {
-      image: tokenUri,
-      description: "harberger taxed pixel :lmeow:",
-      name: "Pixel " + id,
+    let image = metadata.image;
+    if (file) {
+      const fileCid = await storage.put([file]);
+      image = "https://ipfs.io/ipfs/" + fileCid + "/" + file.name;
+      console.log("File", fileCid, file);
+    }
+
+    const newMetadata = {
+      image,
+      description: description || pixel.description,
+      name: name || pixel.name || "Pixel " + id,
     };
 
-    const blob = new Blob([JSON.stringify(metadata)], {
+    console.log("metadata", newMetadata);
+
+    const blob = new Blob([JSON.stringify(newMetadata)], {
       type: "application/json",
     });
 
     const cid = await storage.put([new File([blob], "metadata.json")]);
     console.log("stored token metadata with cid:", cid);
+    setUploadingToIpfs(false);
 
     const finalisedTokenUri = "https://ipfs.io/ipfs/" + cid + "/metadata.json";
+
+    return finalisedTokenUri;
+  };
+
+  const buyPixel = async () => {
+    const finalisedTokenUri = file && uploadToIpfs();
+
+    const tx = await canvas.buy(
+      id,
+      finalisedTokenUri || pixel.tokenUri,
+      parseEther(price || pixelPrice),
+      {
+        value: pixelPrice,
+      }
+    );
+
+    await tx.wait();
+
+    alert("Bought pixel");
+  };
+
+  const updateDataUri = async () => {
+    const finalisedTokenUri = uploadToIpfs();
     const tx = await canvas.setCanvasURI(id, finalisedTokenUri);
     setUploadingToIpfs(false);
 
@@ -133,16 +172,16 @@ const Pixel = ({ id }) => {
   }, [loading]);
 
   useEffect(() => {
-    const fetchImageUri = async () => {
+    const fetchMetadata = async () => {
       if (pixel.tokenUri) {
         console.log("fetching:", pixel.tokenUri);
         fetch(pixel.tokenUri)
           .then((v) => v.json())
-          .then((r) => setImageUri(r.image));
+          .then((r) => setMetadata(r));
       }
     };
 
-    fetchImageUri();
+    fetchMetadata();
   }, [loading, pixel.tokenUri]);
 
   const pixelColor = useMemo(() => {
@@ -157,33 +196,74 @@ const Pixel = ({ id }) => {
           backgroundColor: pixelColor,
         }}
       >
-        {imageUri && <img src={imageUri} />}
+        {metadata.image && <img src={metadata.image} />}
       </PixelContainer>
 
       {show && (
         <Modal onClose={() => setShow(false)}>
           <div className="pixel-modal">
-            {imageUri && <img src={imageUri} />}
+            {metadata.image && <img src={metadata.image} />}
 
+            {metadata.name && <b>{metadata.name}</b>}
+            {metadata.description && <p>{metadata.description}</p>}
             {pixel.owner && <p>Owner: {pixel.owner}</p>}
             <p>Harberger tax price: {formatEther(pixelPrice || "0")} ETH</p>
             {pixel.tokenUri && <a href={pixel.tokenUri}>IPFS link</a>}
 
-            {address && address.toLowerCase() === pixel.owner && (
+            {pixel.owner && (
+              <a
+                href={`https://testnets.opensea.io/assets/goerli/${process.env.NEXT_PUBLIC_CONTRACT_ADDRESS}/${id}`}
+              >
+                Opensea link
+              </a>
+            )}
+
+            <div className="show-more" onClick={() => setShowMore(!showMore)}>
+              {address && address.toLowerCase() === pixel.owner
+                ? "Edit pixel"
+                : "Buy pixel"}
+            </div>
+
+            {showMore && (
               <>
                 <div className="input-and-label">
-                  <label htmlFor="data-uri">Data URI</label>
+                  <label htmlFor="data-uri">Name</label>
                   <Input
                     id="data-uri"
-                    placeholder="Enter data URI..."
-                    value={tokenUri}
-                    onChange={(e) => setTokenUri(e.target.value)}
+                    placeholder="Enter name..."
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    type="text-area"
                   />
                 </div>
 
-                {uploadingToIpfs && <p>Uploading to ipfs...</p>}
+                <div className="input-and-label">
+                  <label htmlFor="data-uri">Description</label>
+                  <TextArea
+                    id="data-uri"
+                    placeholder="Enter description..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    type="text-area"
+                  />
+                </div>
 
-                <button onClick={() => updateDataUri()}>Update data URI</button>
+                <div className="input-and-label">
+                  <label htmlFor="file-upload">File upload</label>
+                  <input
+                    id="file-upload"
+                    type="file"
+                    onChange={(e) => setFile(e.target.files[0])}
+                  />
+                </div>
+
+                {address && address.toLowerCase() === pixel.owner && (
+                  <button onClick={() => updateDataUri()}>
+                    Update metadata
+                  </button>
+                )}
+
+                {uploadingToIpfs && <p>Uploading to ipfs...</p>}
 
                 <div className="input-and-label">
                   <label htmlFor="data-uri">Harberger tax price (ETH)</label>
@@ -196,12 +276,14 @@ const Pixel = ({ id }) => {
                   />
                 </div>
 
-                <button onClick={() => updatePrice()}>Update price</button>
-              </>
-            )}
+                {address && address.toLowerCase() === pixel.owner && (
+                  <button onClick={() => updatePrice()}>Update price</button>
+                )}
 
-            {address?.toLowerCase() !== pixel.owner && (
-              <button onClick={() => buyPixel()}>Buy pixel</button>
+                {address?.toLowerCase() !== pixel.owner && (
+                  <button onClick={() => buyPixel()}>Buy pixel</button>
+                )}
+              </>
             )}
           </div>
         </Modal>
