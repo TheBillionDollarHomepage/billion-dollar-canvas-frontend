@@ -1,3 +1,10 @@
+# TheBillionDollarHomepage
+
+An advertisement billboard for public goods. Inspired by "TheMillionDollarPage" , but using harberger taxes that fund gitcoin.
+
+See more informatiomn here: https://ethglobal.com/showcase/the-billion-dollar-homepage-ixisb
+
+
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
 ## Getting Started
