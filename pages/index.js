@@ -4,6 +4,7 @@ import Head from "next/head";
 import { createContext, useContext, useEffect, useState } from "react";
 import styled from "styled-components";
 import { useAccount, useBlockNumber, useProvider, useSigner } from "wagmi";
+import { Web3Storage } from "web3.storage";
 import { Input } from "../components/core/Input";
 import { Modal } from "../components/layout/Modal";
 import billionDollarCanvasAbi from "../contracts/BillionDollarCanvas.abi.json";
@@ -57,6 +58,8 @@ const Pixel = ({ id }) => {
   const provider = useProvider();
   const [pixels, loading, error] = useContext(PixelsContext);
   const [pixelPrice, setPixelPrice] = useState();
+  const [imageUri, setImageUri] = useState();
+  const [uploadingToIpfs, setUploadingToIpfs] = useState(false);
 
   const pixel = pixels?.find((v) => v.id == id) || {};
 
@@ -77,7 +80,29 @@ const Pixel = ({ id }) => {
   };
 
   const updateDataUri = async () => {
-    const tx = await canvas.setCanvasURI(id, tokenUri);
+    setUploadingToIpfs(true);
+
+    const storage = new Web3Storage({
+      token: process.env.NEXT_PUBLIC_WEB3STORAGE_TOKEN,
+    });
+
+    const metadata = {
+      image: tokenUri,
+      description: "harberger taxed pixel :lmeow:",
+      name: "Pixel " + id,
+    };
+
+    const blob = new Blob([JSON.stringify(metadata)], {
+      type: "application/json",
+    });
+
+    const cid = await storage.put([new File([blob], "metadata.json")]);
+    console.log("stored token metadata with cid:", cid);
+
+    const finalisedTokenUri = "https://ipfs.io/ipfs/" + cid + "/metadata.json";
+    const tx = await canvas.setCanvasURI(id, finalisedTokenUri);
+    setUploadingToIpfs(false);
+
     await tx.wait();
 
     alert("Set new canvas URI");
@@ -103,16 +128,29 @@ const Pixel = ({ id }) => {
     getPixelPrice();
   }, [loading]);
 
+  useEffect(() => {
+    const fetchImageUri = async () => {
+      if (pixel.tokenUri) {
+        console.log("fetching:", pixel.tokenUri);
+        fetch(pixel.tokenUri)
+          .then((v) => v.json())
+          .then((r) => setImageUri(r.image));
+      }
+    };
+
+    fetchImageUri();
+  }, [loading, pixel.tokenUri]);
+
   return (
     <>
       <PixelContainer onClick={() => setShow(true)}>
-        {pixel.tokenUri && <img src={pixel.tokenUri} />}
+        {imageUri && <img src={imageUri} />}
       </PixelContainer>
 
       {show && (
         <Modal onClose={() => setShow(false)}>
           <div className="pixel-modal">
-            {pixel.tokenUri && <img src={pixel.tokenUri} />}
+            {imageUri && <img src={imageUri} />}
 
             {pixel.owner && <p>Owner: {pixel.owner}</p>}
             <p>Harberger tax price: {formatEther(pixelPrice || "0")} ETH</p>
@@ -128,6 +166,8 @@ const Pixel = ({ id }) => {
                     onChange={(e) => setTokenUri(e.target.value)}
                   />
                 </div>
+
+                {uploadingToIpfs && <p>Uploading to ipfs...</p>}
 
                 <button onClick={() => updateDataUri()}>Update data URI</button>
 
