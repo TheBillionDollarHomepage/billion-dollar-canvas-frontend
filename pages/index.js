@@ -11,6 +11,7 @@ import { Modal } from "../components/layout/Modal";
 import billionDollarCanvasAbi from "../contracts/BillionDollarCanvas.abi.json";
 import { usePixels } from "../hooks/usePixels";
 import { shadeColor } from "../utils/shadeColor";
+import { Player, useStream } from "@livepeer/react";
 
 const PixelsContext = createContext([]);
 
@@ -78,6 +79,14 @@ const Pixel = ({ id }) => {
   const [showMore, setShowMore] = useState();
   const [description, setDescription] = useState();
   const [name, setName] = useState();
+  const [streamId, setStreamId] = useState();
+  const { data: stream, refetch } = useStream(metadata.streamId);
+
+  useEffect(() => {
+    if (metadata.streamId) {
+      refetch({ streamId: metadata.streamId });
+    }
+  }, [metadata.streamId]);
 
   const pixel = pixels?.find((v) => v.id == id) || {};
 
@@ -104,8 +113,9 @@ const Pixel = ({ id }) => {
     const newMetadata = {
       image,
       description:
-        description || pixel.description || "harberger taxed pixel :lmeow:",
-      name: name || pixel.name || "Pixel " + id,
+        description || metadata.description || "harberger taxed pixel :lmeow:",
+      name: name || metadata.name || "Pixel " + id,
+      streamId: streamId || metadata.streamId,
     };
 
     console.log("metadata", newMetadata);
@@ -190,6 +200,8 @@ const Pixel = ({ id }) => {
     return PIXEL_COLORS[Math.floor(Math.random() * PIXEL_COLORS.length)];
   }, []);
 
+  console.log(stream);
+
   return (
     <>
       <PixelContainer
@@ -198,12 +210,41 @@ const Pixel = ({ id }) => {
           backgroundColor: pixelColor,
         }}
       >
-        {metadata.image && <img src={metadata.image} />}
+        {metadata.streamId && stream ? (
+          <Player
+            playbackId={stream.playbackId}
+            aspectRatio="1to1"
+            theme={{
+              borderStyles: {
+                containerBorderStyle: "hidden",
+              },
+              sizes: {
+                iconButtonSize: false,
+                iconButtonSizeSm: false,
+                liveIndicatorSize: false,
+                loading: false,
+                thumb: false,
+                trackActive: false,
+                trackContainerHeight: false,
+                trackContainerHeightSm: false,
+                trackInactive: false,
+              },
+              radii: {
+                containerBorderRadius: "0px",
+              },
+            }}
+          />
+        ) : metadata.image ? (
+          <img src={metadata.image} />
+        ) : null}
       </PixelContainer>
 
       {show && (
         <Modal onClose={() => setShow(false)}>
           <div className="pixel-modal">
+            {metadata.streamId && stream && (
+              <Player playbackId={stream.playbackId} />
+            )}
             {metadata.image && <img src={metadata.image} />}
 
             {metadata.name && <b>{metadata.name}</b>}
@@ -256,6 +297,17 @@ const Pixel = ({ id }) => {
                     id="file-upload"
                     type="file"
                     onChange={(e) => setFile(e.target.files[0])}
+                  />
+                </div>
+
+                <div className="input-and-label">
+                  <label htmlFor="data-uri">Livepeer stream id</label>
+                  <Input
+                    id="data-uri"
+                    placeholder="Enter livepeer stream id..."
+                    value={streamId}
+                    onChange={(e) => setStreamId(e.target.value)}
+                    type="text-area"
                   />
                 </div>
 

@@ -9,7 +9,7 @@ const Container = styled.div`
   overflow: auto;
   position: fixed;
   display: grid;
-  z-index: 1000;
+  z-index: 10000000000000000;
   top: 50vh;
   left: 50%;
   transform: translateY(-50%) translateX(-50%);
